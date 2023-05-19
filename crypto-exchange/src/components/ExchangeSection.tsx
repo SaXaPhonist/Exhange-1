@@ -39,7 +39,12 @@ export default function CurrencyInput() {
   const [amountError, setAmountError] = useState(false);
   const [disablePairError, setDisableError] = useState(false);
 
-  const [minAmountFrom, setMinAmountFrom] = useState<string | null>(null);
+ const swapCurrencies = () => {
+    if(selectedCoinFrom && selectedCoinTo){
+      setSelectedCoinFrom(selectedCoinTo)
+      setSelectedCoinTo(selectedCoinFrom)
+    }
+ }
 
   const estimatedDirect = async () => {
     try {
@@ -47,7 +52,7 @@ export default function CurrencyInput() {
         params: {
           fromCurrency: selectedCoinFrom?.currency,
           toCurrency: selectedCoinTo?.currency,
-          fromAmount: debouncedFromValue || minAmountFrom,
+          fromAmount: debouncedFromValue,
           flow: "standard",
           ...(selectedCoinFrom?.network && {
             fromNetwork: selectedCoinFrom.network,
@@ -92,23 +97,28 @@ export default function CurrencyInput() {
           setDisableError(true);
           return;
         }
-        setMinAmountFrom(res.data.minAmount);
+        setFromAmountValue(res.data.minAmount);
+        setDisableError(false)
       })
       .catch((err) => console.log(err));
 
   useEffect(() => {
-    if (debouncedFromValue || minAmountFrom) {
+    if (debouncedFromValue) {
       estimatedDirect();
     }
-  }, [selectedCoinTo, minAmountFrom, debouncedFromValue]);
+  }, [selectedCoinTo, debouncedFromValue]);
 
   useEffect(() => {
     if (selectedCoinFrom) {
-      setDisableError(false);
-      setMinAmountFrom(null);
       getMinAmountFrom();
     }
-  }, [selectedCoinFrom]);
+  }, []);
+
+  useEffect(() => {
+    if (debouncedFromValue === null) {
+      getMinAmountFrom();
+    }
+  }, [debouncedFromValue]);
 
   useEffect(() => {
     if (amountError) {
@@ -150,12 +160,13 @@ export default function CurrencyInput() {
           }}
           placeholder="amount"
           onChange={(e) => setFromAmountValue(e.target.value)}
-          value={fromAmountValue || minAmountFrom || ""}
+          value={fromAmountValue || ""}
           rightSection={
             <CustomSelect
               setSearchOpen={setSearchOpen}
               setSelectedCoin={setSelectedCoinFrom}
               coinIcon={selectedCoinFrom?.icon}
+              setMinAmountFrom={setFromAmountValue}
               cryptoData={cryptoData}
               selectTag="first"
               currencyName={selectedCoinFrom?.currency}
@@ -163,7 +174,7 @@ export default function CurrencyInput() {
           }
           rightSectionWidth={"35%"}
         />
-        <Image src={SwapIcon} alt="swap currency" className="xl:rotate-90" />
+        <Image src={SwapIcon} alt="swap currency" className="xl:rotate-90 cursor-pointer"  onClick={swapCurrencies}/>
         <TextInput
           radius="sm"
           size="lg"
